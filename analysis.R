@@ -12,7 +12,6 @@ kwm_23 <- read.csv("input/kreiswanderungen/kreiswanderungen_2023.csv", sep = ";"
 kwm_24 <- read.csv("input/kreiswanderungen/kreiswanderungen_2024.csv", sep = ";")
 bev_23 <- read.csv("input/bevoelkerung/bevoelkerung-23.csv", sep = ";", skip = 5)
 
-
 # Nur relevante Spalten behalten (alles außer saldo_aus_*)
 kwm_22 <- kwm_22 %>%
   select(zielkreis, zielkreis_ags, altersgruppe, saldo_deu_i, saldo_deu_m, saldo_deu_w) %>%
