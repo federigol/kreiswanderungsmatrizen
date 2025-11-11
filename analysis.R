@@ -160,7 +160,7 @@ kwm_24 <- kwm_24 %>%
 
 # Join --------------------------------------------------------------------
 # Jetzt zusammenführen
-kwm_all <- bind_rows(kwm_2018, kwm_2019, kwm_2020, kwm_2021, kwm_22, kwm_23, kwm_24)
+kwm_all <- bind_rows(kwm_22, kwm_23, kwm_24)
 
 rm(kwm_2018, kwm_2019, kwm_2020, kwm_2021, kwm_22, kwm_23, kwm_24)
 
@@ -232,60 +232,7 @@ bev_22 <- bev_22 %>%
   ) %>%
   mutate(ags = sub("^0+", "", as.character(ags)))
 
-
-# Analyse -----------------------------------------------------------------
-
-# 1) Kernergebnis: Saldo (insgesamt) je Kreis x Altersgruppe x Jahr
-saldo_kreis_ag <- kwm_all %>%
-  group_by(jahr, zielkreis_ags, zielkreis, altersgruppe) %>%
-  summarise(
-    saldo_ins_gesamt = sum(saldo_deu_i, na.rm = TRUE),  # Wanderungssaldo insgesamt
-    .groups = "drop"
-  )
-
-saldo_kreis_ag_sum <- saldo_kreis_ag %>%
-  group_by(zielkreis_ags, zielkreis, altersgruppe) %>%
-  summarise(
-    saldo_summe = sum(saldo_ins_gesamt, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  tidyr::pivot_wider(
-    names_from = altersgruppe,
-    values_from = saldo_summe
-  ) %>%
-  mutate(
-    # Gesamtsumme aller Altersgruppen (ohne AGS-Spalten)
-    total = rowSums(across(-c(zielkreis_ags, zielkreis)), na.rm = TRUE)
-  ) %>%
-  clean_names() 
-
-
-# --- Eisenach -> Wartburgkreis addieren und Eisenach-Zeile löschen ---
-
-# 1) Spaltenbereich: von x18_bis_24_jahre bis total
-cols <- which(names(saldo_kreis_ag_sum) == "x18_bis_24_jahre") :
-  which(names(saldo_kreis_ag_sum) == "total")
-
-# 2) Summen aus "Eisenach, Stadt" holen (falls vorhanden)
-eisenach_vals <- colSums(
-  saldo_kreis_ag_sum[saldo_kreis_ag_sum$zielkreis == "Eisenach, Stadt", cols, drop = FALSE],
-  na.rm = TRUE
-)
-
-# 3) Index des Wartburgkreis finden
-wartburg_idx <- which(saldo_kreis_ag_sum$zielkreis == "Wartburgkreis")
-
-# 4) Addieren (nur wenn beide existieren)
-if (length(wartburg_idx) == 1 && length(eisenach_vals) > 0) {
-  saldo_kreis_ag_sum[wartburg_idx, cols] <-
-    sweep(saldo_kreis_ag_sum[wartburg_idx, cols, drop = FALSE], 2, eisenach_vals, `+`)
-}
-
-# 5) Eisenach-Zeile entfernen
-saldo_kreis_ag_sum <- dplyr::filter(saldo_kreis_ag_sum, zielkreis != "Eisenach, Stadt")
-
-# 1) Bevölkerungs-Altersgruppen passend zu den Saldo-Buckets bündeln
-bev_buckets <- bev_22 %>%
+bev_22 <- bev_22 %>%
   mutate(bucket = case_when(
     altersgruppe %in% c("Unter 3 Jahre", "3 bis 5 Jahre", "6 bis 14 Jahre", "15 bis 17 Jahre") ~ "unter_18_jahre",
     altersgruppe == "18 bis 24 Jahre" ~ "x18_bis_24_jahre",
@@ -304,34 +251,81 @@ bev_buckets <- bev_22 %>%
     names_prefix = "bev_"   # -> bev_unter_18_jahre, bev_x18_bis_24_jahre, ...
   )
 
-# 2) An saldo_kreis_ag_sum anhängen (per Regionsname)
-saldo_kreis_ag_sum <- saldo_kreis_ag_sum %>%
-  left_join(bev_buckets, by = c("zielkreis_ags" = "ags"))
+# Analyse -----------------------------------------------------------------
 
-
-saldo_kreis_ag_sum <- saldo_kreis_ag_sum %>%
-  mutate(
-    # Prozentualer Wanderungssaldo (Saldo / Bevölkerungszahl * 100)
-    p_unter_18_jahre        = 100 * unter_18_jahre        / bev_unter_18_jahre,
-    p_x18_bis_24_jahre      = 100 * x18_bis_24_jahre      / bev_x18_bis_24_jahre,
-    p_x25_bis_29_jahre      = 100 * x25_bis_29_jahre      / bev_x25_bis_29_jahre,
-    p_x30_bis_49_jahre      = 100 * x30_bis_49_jahre      / bev_x30_bis_49_jahre,
-    p_x50_bis_64_jahre      = 100 * x50_bis_64_jahre      / bev_x50_bis_64_jahre,
-    p_x65_jahre_und_alter   = 100 * x65_jahre_und_alter   / bev_x65_jahre_und_alter
+# 1) Kernergebnis: Saldo (insgesamt) je Kreis x Altersgruppe x Jahr
+saldo_kreis <- kwm_all %>%
+  group_by(jahr, zielkreis_ags, zielkreis, altersgruppe) %>%
+  summarise(
+    saldo_ins_gesamt = sum(saldo_deu_i, na.rm = TRUE),  # Wanderungssaldo insgesamt
+    .groups = "drop"
   )
 
-saldo_kreis_ag_sum <- saldo_kreis_ag_sum %>%
+saldo_kreis <- saldo_kreis %>%
+  group_by(zielkreis_ags, zielkreis, altersgruppe) %>%
+  summarise(
+    saldo_summe = sum(saldo_ins_gesamt, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = altersgruppe,
+    values_from = saldo_summe
+  ) %>%
   mutate(
-    # Gesamtwanderungssaldo (Summe aller Altersgruppen)
-    wanderungssaldo_gesamt = unter_18_jahre + x18_bis_24_jahre + x25_bis_29_jahre +
-      x30_bis_49_jahre + x50_bis_64_jahre + x65_jahre_und_alter,
-    
+    # Gesamtsumme aller Altersgruppen (ohne AGS-Spalten)
+    total = rowSums(across(-c(zielkreis_ags, zielkreis)), na.rm = TRUE)
+  ) %>%
+  clean_names() 
+
+# # --- Falls Jahre vor 2022 inkludiert: Eisenach -> Wartburgkreis addieren und Eisenach-Zeile löschen ---
+# 
+# # 1) Spaltenbereich: von x18_bis_24_jahre bis total
+# cols <- which(names(saldo_kreis) == "x18_bis_24_jahre") :
+#   which(names(saldo_kreis) == "total")
+# 
+# # 2) Summen aus "Eisenach, Stadt" holen (falls vorhanden)
+# eisenach_vals <- colSums(
+#   saldo_kreis[saldo_kreis$zielkreis == "Eisenach, Stadt", cols, drop = FALSE],
+#   na.rm = TRUE
+# )
+# 
+# # 3) Index des Wartburgkreis finden
+# wartburg_idx <- which(saldo_kreis$zielkreis == "Wartburgkreis")
+# 
+# # 4) Addieren (nur wenn beide existieren)
+# if (length(wartburg_idx) == 1 && length(eisenach_vals) > 0) {
+#   saldo_kreis[wartburg_idx, cols] <-
+#     sweep(saldo_kreis[wartburg_idx, cols, drop = FALSE], 2, eisenach_vals, `+`)
+# }
+# 
+# # 5) Eisenach-Zeile entfernen
+# saldo_kreis <- dplyr::filter(saldo_kreis, zielkreis != "Eisenach, Stadt")
+
+
+# 2) Bevölkerung mit Salden joinen
+saldo_kreis <- saldo_kreis %>%
+  left_join(bev_22, by = c("zielkreis_ags" = "ags"))
+
+
+saldo_kreis <- saldo_kreis %>%
+  mutate(
+    # Jährlicher Wanderungssaldo je 1.000 Personen
+    p_unter_18_jahre        = unter_18_jahre      / 3 / bev_unter_18_jahre      * 1000,
+    p_x18_bis_24_jahre      = x18_bis_24_jahre    / 3 / bev_x18_bis_24_jahre    * 1000,
+    p_x25_bis_29_jahre      = x25_bis_29_jahre    / 3 / bev_x25_bis_29_jahre    * 1000,
+    p_x30_bis_49_jahre      = x30_bis_49_jahre    / 3 / bev_x30_bis_49_jahre    * 1000,
+    p_x50_bis_64_jahre      = x50_bis_64_jahre    / 3 / bev_x50_bis_64_jahre    * 1000,
+    p_x65_jahre_und_alter   = x65_jahre_und_alter / 3 / bev_x65_jahre_und_alter * 1000
+  )
+
+saldo_kreis <- saldo_kreis %>%
+  mutate(
     # Gesamtbevölkerung (Summe aller Altersgruppen)
     bev_gesamt = bev_unter_18_jahre + bev_x18_bis_24_jahre + bev_x25_bis_29_jahre +
       bev_x30_bis_49_jahre + bev_x50_bis_64_jahre + bev_x65_jahre_und_alter,
     
-    # Prozentualer Gesamtsaldo (in Prozent)
-    p_wanderungssaldo_gesamt = 100 * wanderungssaldo_gesamt / bev_gesamt,
+    # Je 1000 Personen
+    p_wanderungssaldo_gesamt = total / 3 / bev_gesamt * 1000,
     
     # Wanderungssaldo 18–49 Jahre
     wanderungssaldo_18_bis_49 = x18_bis_24_jahre + x25_bis_29_jahre + x30_bis_49_jahre,
@@ -339,18 +333,21 @@ saldo_kreis_ag_sum <- saldo_kreis_ag_sum %>%
     # Bevölkerung 18–49 Jahre
     bev_18_bis_49 = bev_x18_bis_24_jahre + bev_x25_bis_29_jahre + bev_x30_bis_49_jahre,
     
-    # Prozentualer Wanderungssaldo 18–49 Jahre
-    p_wanderungssaldo_18_bis_49 = 100 * wanderungssaldo_18_bis_49 / bev_18_bis_49,
+    # Je 1000 Personen
+    p_wanderungssaldo_18_bis_49 = wanderungssaldo_18_bis_49 / 3 / bev_18_bis_49 * 1000,
     
-    # Wanderungssaldo 18–49 Jahre
+    # Wanderungssaldo 18–29 Jahre
     wanderungssaldo_18_bis_29 = x18_bis_24_jahre + x25_bis_29_jahre,
     
     # Bevölkerung 18–49 Jahre
     bev_18_bis_29 = bev_x18_bis_24_jahre + bev_x25_bis_29_jahre,
     
-    # Prozentualer Wanderungssaldo 18–49 Jahre
-    p_wanderungssaldo_18_bis_29 = 100 * wanderungssaldo_18_bis_29 / bev_18_bis_29
+    # Je 1000 Personen
+    p_wanderungssaldo_18_bis_29 = wanderungssaldo_18_bis_29 / 3 / bev_18_bis_29 * 1000
   )
 
+saldo_kreis %>% 
+  select(zielkreis_ags, p_x18_bis_24_jahre, p_x30_bis_49_jahre, p_wanderungssaldo_18_bis_49) %>%
+  write.csv("output/saldi_je_1k.csv", row.names = FALSE)
 
 
