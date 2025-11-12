@@ -223,7 +223,7 @@ kwm_all <- kwm_all %>%
 # Bevölkerung -------------------------------------------------------------
 bev_22 <- read.csv("input/bevoelkerung/bevoelkerung_22.csv", sep = ";")
 bev_22 <- bev_22 %>%
-  filter(X3_variable_attribute_label == "Deutschland") %>%   # nur Deutschland-Daten
+  filter(X3_variable_label == "Staatsangehörigkeit" & X3_variable_attribute_label == "Deutschland") %>%   # nur Deutschland-Daten
   select(
     region = X1_variable_attribute_label,
     ags = X1_variable_attribute_code,
