@@ -488,7 +488,6 @@ saldo_kreis %>%
   write.csv("output/30_bis_49_karte.csv", row.names = FALSE)
 
 # 3.3 Anteil 18-24 an Gesamtbevölkerung ---------------------------------------------------------
-
 saldo_kreis <- saldo_kreis %>%
   mutate(
     # Runden auf Zehner

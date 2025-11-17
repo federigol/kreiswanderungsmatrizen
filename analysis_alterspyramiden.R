@@ -200,9 +200,9 @@ colors <- c(
 theme_mobile <- theme(
   legend.position = "none",
   legend.text = element_text(family = "SZSansDigital", size = 30, color = "#EEE9E0"),
-  plot.title = element_text(hjust = 0.65, vjust = 0, size = 30*130/300, family = "SZSansDigital", face = "bold", color = "#EEE9E0"),
+  plot.title = element_text(hjust = 0.46, vjust = 0, size = 30*130/300, family = "SZSansDigital", face = "bold", color = "#EEE9E0"),
   plot.subtitle = element_text(hjust = 0, face = "plain", size = 20, vjust = 14, family = "SZSansDigital"),
-  plot.title.position = "plot",
+  plot.title.position = "panel",
   legend.key.width = unit(0.5, "cm"),
   text = element_text(color = "#232238", family = "SZSansDigital", size = 20),
   plot.margin = margin(0.5/8, 2/16, 1/16, 0.5/8, unit = "in"),
@@ -220,9 +220,9 @@ theme_mobile <- theme(
 theme_desktop <- theme(
   legend.position = "none",
   legend.text = element_text(family = "SZSansDigital", size = 60*130/300, color = "#EEE9E0"),
-  plot.title = element_text(hjust = 0.535, vjust = 0, family = "SZSansDigital", face = "bold", size = 70*130/300, color = "#EEE9E0"),
+  plot.title = element_text(hjust = 0.48, vjust = 0, family = "SZSansDigital", face = "bold", size = 70*130/300, color = "#EEE9E0"),
   plot.subtitle = element_text(hjust = 0.5, face = "plain", size = 30*130/300, vjust = 0, family = "SZSansDigital"),
-  plot.title.position = "plot",
+  plot.title.position = "panel",
   legend.key.width = unit(1, "cm"),
   legend.justification = c(0.5, 1),
   text = element_text(color = "#232238", family = "SZSansDigital", size = 12*130/300),
