@@ -251,7 +251,7 @@ bev_22 <- bev_22 %>%
     names_prefix = "bev_"   # -> bev_unter_18_jahre, bev_x18_bis_24_jahre, ...
   )
 
-# Analyse -----------------------------------------------------------------
+# 2. Analyse -----------------------------------------------------------------
 
 # 1) Kernergebnis: Saldo (insgesamt) je Kreis x Altersgruppe x Jahr
 saldo_kreis <- kwm_all %>%
@@ -320,6 +320,9 @@ saldo_kreis <- saldo_kreis %>%
 
 saldo_kreis <- saldo_kreis %>%
   mutate(
+    # AGS immer 5-stellig machen
+    zielkreis_ags = str_pad(as.character(zielkreis_ags), width = 5, pad = "0"),
+    
     # Gesamtbevölkerung (Summe aller Altersgruppen)
     bev_gesamt = bev_unter_18_jahre + bev_x18_bis_24_jahre + bev_x25_bis_29_jahre +
       bev_x30_bis_49_jahre + bev_x50_bis_64_jahre + bev_x65_jahre_und_alter,
@@ -343,11 +346,176 @@ saldo_kreis <- saldo_kreis %>%
     bev_18_bis_29 = bev_x18_bis_24_jahre + bev_x25_bis_29_jahre,
     
     # Je 1000 Personen
-    p_wanderungssaldo_18_bis_29 = wanderungssaldo_18_bis_29 / 3 / bev_18_bis_29 * 1000
+    p_wanderungssaldo_18_bis_29 = wanderungssaldo_18_bis_29 / 3 / bev_18_bis_29 * 1000,
+    
+    # Bevölkerungsanteil 18-24
+    bev_anteil_1824 = bev_x18_bis_24_jahre / bev_gesamt * 100
+  )
+
+
+# 3. Datensätze schreiben -------------------------------------------------
+# Hilfsfunktion: 5- und 6-stellige Zahlen mit schmalem Leerzeichen trennen
+format_5_6 <- function(x) {
+  x_round <- round(x)
+  ifelse(
+    abs(x_round) >= 10000 & abs(x_round) <= 999999,
+    format(x_round, big.mark = "\u202F", scientific = FALSE),
+    format(x_round, scientific = FALSE)
+  )
+}
+
+
+# 3.1 Saldo 18-24 ---------------------------------------------------------
+saldo_kreis <- saldo_kreis %>%
+  mutate(
+    # Bevölkerungszahl 18–24 auf 10er runden
+    bev_18_24_round = round(bev_x18_bis_24_jahre / 10) * 10,
+    bev_18_24_str   = format_5_6(bev_18_24_round),
+    
+    # Saldo 18–24 absolut (wie bisher in deinem Tooltip)
+    saldo_18_24_str = format_5_6(abs(x18_bis_24_jahre)),
+    
+    # numerisch gerundet
+    p_18_24_value = round(p_x18_bis_24_jahre, 1),
+    
+    # ohne führendes Leerzeichen formatieren
+    p_18_24_formatted = format(
+      p_18_24_value,
+      big.mark     = "\u202F",
+      decimal.mark = ",",
+      scientific   = FALSE,
+      trim         = TRUE
+    ),
+    
+    # Pluszeichen sauber vorne anfügen (ohne Leerzeichen)
+    p_18_24_str = ifelse(
+      p_18_24_value > 0,
+      paste0("+", p_18_24_formatted),
+      p_18_24_formatted
+    ),
+    
+    # Textbaustein je nach Vorzeichen des absoluten Saldos
+    richtung = dplyr::case_when(
+      x18_bis_24_jahre > 0 ~ "zugezogen als fortgezogen",
+      x18_bis_24_jahre < 0 ~ "fortgezogen als zugezogen",
+      TRUE                 ~ "zugezogen wie fortgezogen"
+    ),
+    
+    tooltip = dplyr::case_when(
+      x18_bis_24_jahre == 0 ~ paste0(
+        "Hier leben rund <b>", bev_18_24_str, " deutsche Personen</b> zwischen 18 und 24 Jahren. ",
+        "Zwischen 2022 und 2024 sind ebenso viele 18- bis 24-Jährige zugezogen wie fortgezogen. ",
+        "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
+        "<b>", p_18_24_str, " je 1.000 Personen</b>."
+      ),
+      TRUE ~ paste0(
+        "Hier leben rund <b>", bev_18_24_str, " deutsche Personen</b> zwischen 18 und 24 Jahren. ",
+        "Zwischen 2022 und 2024 sind <b>", saldo_18_24_str, " mehr 18- bis 24-Jährige</b> ",
+        richtung, ". ",
+        "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
+        "<b>", p_18_24_str, " je 1.000 Personen</b>."
+      )
+    )
+  )
+
+
+
+
+saldo_kreis %>% 
+  select(zielkreis_ags, zielkreis, p_x18_bis_24_jahre, tooltip) %>%
+  write.csv("output/18_bis_24_karte.csv", row.names = FALSE)
+
+# 3.2 Saldo 30-49 ---------------------------------------------------------
+
+saldo_kreis <- saldo_kreis %>%
+  mutate(
+    # Bevölkerungszahl 30–49 auf 10er runden
+    bev_30_49_round = round(bev_x30_bis_49_jahre / 10) * 10,
+    bev_30_49_str   = format_5_6(bev_30_49_round),
+    
+    # Saldo 30–49 absolut (für die Formulierung "mehr ...")
+    saldo_30_49_str = format_5_6(abs(x30_bis_49_jahre)),
+    
+    # --- Wanderungssaldo 30–49 je 1.000 Personen ------------------------
+    
+    # numerisch gerundet
+    p_30_49_value = round(p_x30_bis_49_jahre, 1),
+    
+    # ohne führende Leerzeichen formatieren
+    p_30_49_formatted = format(
+      p_30_49_value,
+      big.mark     = "\u202F",
+      decimal.mark = ",",
+      scientific   = FALSE,
+      trim         = TRUE
+    ),
+    
+    # Pluszeichen bei positiven Werten direkt davor (ohne Leerzeichen)
+    p_30_49_str = ifelse(
+      p_30_49_value > 0,
+      paste0("+", p_30_49_formatted),
+      p_30_49_formatted
+    ),
+    
+    # --------------------------------------------------------------------
+    
+    # Textbaustein je nach Vorzeichen des Saldos
+    richtung = dplyr::case_when(
+      x30_bis_49_jahre > 0 ~ "zugezogen als fortgezogen",
+      x30_bis_49_jahre < 0 ~ "fortgezogen als zugezogen",
+      TRUE                 ~ "zugezogen wie fortgezogen"
+    ),
+    
+    tooltip = dplyr::case_when(
+      x30_bis_49_jahre == 0 ~ paste0(
+        "Hier leben rund <b>", bev_30_49_str, " deutsche Personen</b> zwischen 30 und 49 Jahren. ",
+        "Zwischen 2022 und 2024 sind ebenso viele 30- bis 49-Jährige zugezogen wie fortgezogen. ",
+        "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
+        "<b>", p_30_49_str, " je 1.000 Personen</b>."
+      ),
+      TRUE ~ paste0(
+        "Hier leben rund <b>", bev_30_49_str, " deutsche Personen</b> zwischen 30 und 49 Jahren. ",
+        "Zwischen 2022 und 2024 sind <b>", saldo_30_49_str, " mehr 30- bis 49-Jährige</b> ",
+        richtung, ". ",
+        "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
+        "<b>", p_30_49_str, " je 1.000 Personen</b>."
+      )
+    )
   )
 
 saldo_kreis %>% 
-  select(zielkreis_ags, p_x18_bis_24_jahre, p_x30_bis_49_jahre, p_wanderungssaldo_18_bis_49) %>%
-  write.csv("output/saldi_je_1k.csv", row.names = FALSE)
+  select(zielkreis_ags, zielkreis, p_x30_bis_49_jahre, tooltip) %>%
+  write.csv("output/30_bis_49_karte.csv", row.names = FALSE)
 
+# 3.3 Anteil 18-24 an Gesamtbevölkerung ---------------------------------------------------------
 
+saldo_kreis <- saldo_kreis %>%
+  mutate(
+    # Runden auf Zehner
+    bev_gesamt_round   = round(bev_gesamt / 10) * 10,
+    bev_18_24_round    = round(bev_x18_bis_24_jahre / 10) * 10,
+    
+    # Formatieren mit schmalem Leerzeichen
+    bev_gesamt_str = format_5_6(bev_gesamt_round),
+    bev_18_24_str  = format_5_6(bev_18_24_round),
+    
+    # Prozentwert formatiert (eine Nachkommastelle, Komma)
+    bev_anteil_str = format(
+      round(bev_anteil_1824, 1),
+      decimal.mark = ",",
+      big.mark = "\u202F",
+      scientific = FALSE
+    ),
+    
+    # Tooltip zusammensetzen
+    tooltip = paste0(
+      "Hier leben rund <b>", bev_gesamt_str, 
+      "</b> deutsche Personen, davon sind etwa <b>", bev_18_24_str, 
+      "</b> zwischen 18 und 24 Jahre alt. Das entspricht einem Anteil von <b>",
+      bev_anteil_str, " Prozent</b>."
+    )
+  )
+
+saldo_kreis %>% 
+  select(zielkreis_ags, zielkreis, bev_anteil_1824, tooltip) %>%
+  write.csv("output/18_bis_24_anteil_an_bev.csv", row.names = FALSE)
