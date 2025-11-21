@@ -518,3 +518,147 @@ saldo_kreis <- saldo_kreis %>%
 saldo_kreis %>% 
   select(zielkreis_ags, zielkreis, bev_anteil_1824, tooltip) %>%
   write.csv("output/18_bis_24_anteil_an_bev.csv", row.names = FALSE)
+
+
+
+
+# Split Männer Frauen -----------------------------------------------------
+
+# Nur relevante Spalten behalten (alles außer saldo_aus_*)
+kwm_22 <- kwm_22 %>%
+  select(zielkreis, zielkreis_ags, altersgruppe, herkunftskreis, herkunftskreis_ags, saldo_deu_m, saldo_deu_w) %>%
+  mutate(
+    zielkreis_ags = as.character(zielkreis_ags),
+    herkunftskreis_ags = as.character(herkunftskreis_ags),
+    jahr = 2022
+  )
+
+kwm_23 <- kwm_23 %>%
+  select(zielkreis, zielkreis_ags, altersgruppe, herkunftskreis, herkunftskreis_ags, saldo_deu_m, saldo_deu_w) %>%
+  mutate(
+    zielkreis_ags = as.character(zielkreis_ags),
+    herkunftskreis_ags = as.character(herkunftskreis_ags),
+    jahr = 2023)
+
+kwm_24 <- kwm_24 %>%
+  select(zielkreis, zielkreis_ags, altersgruppe, herkunftskreis, herkunftskreis_ags, saldo_deu_m, saldo_deu_w) %>%
+  mutate(
+    zielkreis_ags = as.character(zielkreis_ags),
+    herkunftskreis_ags = as.character(herkunftskreis_ags),
+    jahr = 2024)
+
+
+# Join --------------------------------------------------------------------
+# Jetzt zusammenführen
+kwm_all <- bind_rows(kwm_22, kwm_23, kwm_24)
+
+rm(kwm_2018, kwm_2019, kwm_2020, kwm_2021, kwm_22, kwm_23, kwm_24)
+
+kwm_all <- kwm_all %>%
+  mutate(
+    zielkreis = case_when(
+      zielkreis_ags == "9561" ~ "Ansbach, Stadt",
+      zielkreis_ags == "9571" ~ "Ansbach, Landkreis",
+      zielkreis_ags == "9661" ~ "Aschaffenburg, Stadt",
+      zielkreis_ags == "9672" ~ "Aschaffenburg, Landkreis",
+      zielkreis_ags == "9761" ~ "Augsburg, Stadt",
+      zielkreis_ags == "9772" ~ "Augsburg, Landkreis",
+      zielkreis_ags == "8211" ~ "Baden-Baden, Stadt",
+      zielkreis_ags == "9461" ~ "Bamberg, Stadt",
+      zielkreis_ags == "9471" ~ "Bamberg, Landkreis",
+      zielkreis_ags == "9462" ~ "Bayreuth, Stadt",
+      zielkreis_ags == "9472" ~ "Bayreuth, Landkreis",
+      zielkreis_ags == "9463" ~ "Coburg, Stadt",
+      zielkreis_ags == "9473" ~ "Coburg, Landkreis",
+      zielkreis_ags == "8311" ~ "Freiburg im Breisgau, Stadt",
+      zielkreis_ags == "9563" ~ "Fürth, Stadt",
+      zielkreis_ags == "9573" ~ "Fürth, Landkreis",
+      zielkreis_ags == "5914" ~ "Hagen, Stadt",
+      zielkreis_ags == "8221" ~ "Heidelberg, Stadt",
+      zielkreis_ags == "8121" ~ "Heilbronn, Stadt",
+      zielkreis_ags == "8125" ~ "Heilbronn, Landkreis",
+      zielkreis_ags == "9464" ~ "Hof, Stadt",
+      zielkreis_ags == "9475" ~ "Hof, Landkreis",
+      zielkreis_ags == "7335" ~ "Kaiserslautern, Landkreis",
+      zielkreis_ags == "8212" ~ "Karlsruhe, Stadt",
+      zielkreis_ags == "8215" ~ "Karlsruhe, Landkreis",
+      zielkreis_ags == "6633" ~ "Kassel, Landkreis",
+      zielkreis_ags == "9261" ~ "Landshut, Stadt",
+      zielkreis_ags == "9274" ~ "Landshut, Landkreis",
+      zielkreis_ags == "14729" ~ "Leipzig, Landkreis",
+      zielkreis_ags == "8222" ~ "Mannheim, Stadt",
+      zielkreis_ags == "9184" ~ "München, Landkreis",
+      zielkreis_ags == "6438" ~ "Offenbach, Landkreis",
+      zielkreis_ags == "3458" ~ "Oldenburg, Landkreis",
+      zielkreis_ags == "3459" ~ "Osnabrück, Landkreis",
+      zielkreis_ags == "9262" ~ "Passau, Stadt",
+      zielkreis_ags == "9275" ~ "Passau, Landkreis",
+      zielkreis_ags == "8231" ~ "Pforzheim, Stadt",
+      zielkreis_ags == "9362" ~ "Regensburg, Stadt",
+      zielkreis_ags == "9375" ~ "Regensburg, Landkreis",
+      zielkreis_ags == "9163" ~ "Rosenheim, Stadt",
+      zielkreis_ags == "9187" ~ "Rosenheim, Landkreis",
+      zielkreis_ags == "9662" ~ "Schweinfurt, Stadt",
+      zielkreis_ags == "9678" ~ "Schweinfurt, Landkreis",
+      zielkreis_ags == "5122" ~ "Solingen, Stadt",
+      zielkreis_ags == "8111" ~ "Stuttgart, Stadt",
+      zielkreis_ags == "8421" ~ "Ulm, Stadt",
+      zielkreis_ags == "9663" ~ "Würzburg, Stadt",
+      zielkreis_ags == "9679" ~ "Würzburg, Landkreis",
+      TRUE ~ zielkreis
+    )
+  )
+
+
+# Bevölkerung -------------------------------------------------------------
+bev_22 <- read.csv("input/bevoelkerung/bevoelkerung_22.csv", sep = ";")
+bev_22 <- bev_22 %>%
+  filter(X3_variable_label == "Staatsangehörigkeit" & X3_variable_attribute_label == "Deutschland") %>%   # nur Deutschland-Daten
+  select(
+    region = X1_variable_attribute_label,
+    ags = X1_variable_attribute_code,
+    altersgruppe = X2_variable_attribute_label,
+    value
+  ) %>%
+  mutate(ags = sub("^0+", "", as.character(ags)))
+
+bev_22 <- bev_22 %>%
+  mutate(bucket = case_when(
+    altersgruppe %in% c("Unter 3 Jahre", "3 bis 5 Jahre", "6 bis 14 Jahre", "15 bis 17 Jahre") ~ "unter_18_jahre",
+    altersgruppe == "18 bis 24 Jahre" ~ "x18_bis_24_jahre",
+    altersgruppe == "25 bis 29 Jahre" ~ "x25_bis_29_jahre",
+    altersgruppe %in% c("30 bis 39 Jahre", "40 bis 49 Jahre") ~ "x30_bis_49_jahre",
+    altersgruppe == "50 bis 64 Jahre" ~ "x50_bis_64_jahre",
+    altersgruppe %in% c("65 bis 74 Jahre", "75 Jahre und älter") ~ "x65_jahre_und_alter",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(bucket)) %>%
+  group_by(region, ags, bucket) %>%
+  summarise(bev = sum(value, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(
+    names_from  = bucket,
+    values_from = bev,
+    names_prefix = "bev_"   # -> bev_unter_18_jahre, bev_x18_bis_24_jahre, ...
+  )
+
+# 1) Kernergebnis: Saldo je Kreis x Altersgruppe x Jahr und getrennt nach Geschlecht
+saldo_kreis <- kwm_all %>%
+  group_by(jahr, zielkreis_ags, zielkreis, altersgruppe) %>%
+  summarise(
+    saldo_m = sum(saldo_deu_m, na.rm = TRUE),  # Männer
+    saldo_w = sum(saldo_deu_w, na.rm = TRUE),  # Frauen
+    .groups = "drop"
+  )
+
+saldo_kreis <- saldo_kreis %>%
+  group_by(zielkreis_ags, zielkreis, altersgruppe) %>%
+  summarise(
+    saldo_m = sum(saldo_m, na.rm = TRUE),
+    saldo_w = sum(saldo_w, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = altersgruppe,
+    values_from = c(saldo_m, saldo_w)  # wir pivotieren beide Geschlechter!
+  ) %>%
+  clean_names()
