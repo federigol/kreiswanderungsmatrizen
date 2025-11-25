@@ -136,11 +136,11 @@ make_long <- function(df, geschlecht, staatsb) {
 }
 
 
-a_frauen  <- make_long(a_frauen,  "Weiblich", "Deutsch")
-a_maenner <- make_long(a_maenner, "Männlich", "Deutsch")
+a_frauen  <- make_long(a_frauen,  "Weiblich", "Ausländisch")
+a_maenner <- make_long(a_maenner, "Männlich", "Ausländisch")
 
-d_frauen  <- make_long(d_frauen,  "Weiblich", "Ausländisch")
-d_maenner <- make_long(d_maenner, "Männlich", "Ausländisch")
+d_frauen  <- make_long(d_frauen,  "Weiblich", "Deutsch")
+d_maenner <- make_long(d_maenner, "Männlich", "Deutsch")
 
 df_all <- bind_rows(a_frauen, a_maenner, d_frauen, d_maenner)
 
@@ -366,7 +366,73 @@ for (landkreis in landkreis_names) {
   )
 }
 
+## 3.5 Pyramide mit Einfärbung 30-49 -----------------------------------------------------
+landkreis_names <- unique(df_all_geschlecht$region)
 
+for (landkreis in landkreis_names) {
+  df_landkreis <- df_all_geschlecht %>%
+    filter(region == landkreis) %>%
+    mutate(
+      AgeMidpoint = alter + 0.5,
+      fill_cat = case_when(
+        geschlecht == "Weiblich" & alter >= 30 & alter <= 49 ~ "Weiblich_highlighted",
+        geschlecht == "Männlich" & alter >= 30 & alter <= 49 ~ "Männlich_highlighted",
+        TRUE                                                ~ geschlecht
+      )
+    )
+  
+  p <- ggplot(df_landkreis, aes(x = AgeMidpoint, fill = fill_cat)) +
+    # Frauen positiv
+    geom_bar(
+      data = ~ subset(.x, geschlecht == "Weiblich"),
+      aes(y = value),
+      stat = "identity",
+      position = "dodge",
+      width = 1
+    ) +
+    # Männer negativ
+    geom_bar(
+      data = ~ subset(.x, geschlecht == "Männlich"),
+      aes(y = -value),
+      stat = "identity",
+      position = "dodge",
+      width = 1
+    ) +
+    scale_y_continuous(labels = abs, breaks = NULL) +  
+    labs(
+      x = "",
+      y = "",
+      title = landkreis,
+      fill = ""
+    ) +
+    theme_minimal() +
+    theme(panel.grid = element_blank()) +
+    coord_flip() +
+    scale_fill_manual(values = colors)
+  
+  # Dateinamen säubern
+  landkreis_sanitized <- sanitize_url(landkreis)
+  
+  # Desktop
+  ggsave(
+    filename = paste0("output/pyrs_30_49/pyr_", landkreis_sanitized, "_desktop.png"),
+    plot = p + theme_desktop +
+      theme(axis.text.x = element_blank(), plot.background = element_blank()),
+    device = "png",
+    width = 1920/150, height = 1080/150,
+    units = "in", bg = NA, dpi = 300
+  )
+  
+  # Mobile
+  ggsave(
+    filename = paste0("output/pyrs_30_49/pyr_", landkreis_sanitized, "_mobile.png"),
+    plot = p + theme_mobile +
+      theme(axis.text.x = element_blank(), plot.background = element_blank()),
+    device = "png",
+    width = 360/150, height = 640/150,
+    units = "in", bg = NA, dpi = 300
+  )
+}
 
 # Für Widget --------------------------------------------------------------
 theme_mobile <- theme(
@@ -439,5 +505,63 @@ for (landkreis in landkreis_names) {
     device = "png", width = 450/150, height = 450/150, units = "in", bg = NA, dpi = 300
   )
 }
+
+
+# 3.5 Anteil 18 bis 24 an Gesamtbevölkerung -------------------------------
+df_18_24 <- df_all %>%
+  # nur Deutsche (falls andere Staatsbürgerschaften im df vorhanden sind)
+  filter(staatsbuergerschaft == "Deutsch") %>%
+  
+  group_by(ags, region) %>%
+  summarise(
+    deutsche_gesamt = sum(value),                             # alle Altersjahre
+    deutsche_18_24 = sum(value[alter >= 18 & alter <= 24], na.rm = TRUE), # nur 18-24
+    .groups = "drop"
+  ) %>%
+  mutate(
+    anteil_18_24 = deutsche_18_24 / deutsche_gesamt  * 100         # Anteil berechnen
+  )
+
+# Hilfsfunktion: 5- bis 7-stellige Zahlen mit schmalem Leerzeichen trennen
+format_5_6 <- function(x) {
+  x_round <- round(x)
+  ifelse(
+    abs(x_round) >= 10000 & abs(x_round) <= 9999999,
+    format(x_round, big.mark = "\u202F", scientific = FALSE),
+    format(x_round, scientific = FALSE)
+  )
+}
+
+df_18_24 <- df_18_24 %>%
+  mutate(
+    # Runden auf Zehner
+    bev_gesamt_round   = round(deutsche_gesamt / 10) * 10,
+    bev_18_24_round   = round(deutsche_18_24 / 10) * 10,
+    
+    # Formatieren mit schmalem Leerzeichen
+    bev_gesamt_str = format_5_6(bev_gesamt_round),
+    bev_18_24_str  = format_5_6(bev_18_24_round),
+    
+    # Prozentwert formatiert (eine Nachkommastelle, Komma)
+    bev_anteil_str = format(
+      round(anteil_18_24, 1),
+      decimal.mark = ",",
+      big.mark = "\u202F",
+      scientific = FALSE
+    ),
+    
+    # Tooltip zusammensetzen
+    tooltip = paste0(
+      "Hier leben rund <b>", bev_gesamt_str, 
+      "</b> deutsche Personen, davon sind etwa <b>", bev_18_24_str, 
+      "</b> zwischen 18 und 24 Jahre alt. Das entspricht einem Anteil von <b>",
+      bev_anteil_str, " Prozent</b>."
+    )
+  )
+
+df_18_24 %>% 
+  select(ags, region, anteil_18_24, tooltip) %>%
+  write.csv("output/18_bis_24_anteil_an_bev.csv", row.names = FALSE)
+
 
 

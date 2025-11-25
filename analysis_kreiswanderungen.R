@@ -310,12 +310,12 @@ saldo_kreis <- saldo_kreis %>%
 saldo_kreis <- saldo_kreis %>%
   mutate(
     # Jährlicher Wanderungssaldo je 1.000 Personen
-    p_unter_18_jahre        = unter_18_jahre      / 3 / bev_unter_18_jahre      * 1000,
-    p_x18_bis_24_jahre      = x18_bis_24_jahre    / 3 / bev_x18_bis_24_jahre    * 1000,
-    p_x25_bis_29_jahre      = x25_bis_29_jahre    / 3 / bev_x25_bis_29_jahre    * 1000,
-    p_x30_bis_49_jahre      = x30_bis_49_jahre    / 3 / bev_x30_bis_49_jahre    * 1000,
-    p_x50_bis_64_jahre      = x50_bis_64_jahre    / 3 / bev_x50_bis_64_jahre    * 1000,
-    p_x65_jahre_und_alter   = x65_jahre_und_alter / 3 / bev_x65_jahre_und_alter * 1000
+    p_unter_18_jahre        = unter_18_jahre      / 3 / bev_unter_18_jahre      * 100,
+    p_x18_bis_24_jahre      = x18_bis_24_jahre    / 3 / bev_x18_bis_24_jahre    * 100,
+    p_x25_bis_29_jahre      = x25_bis_29_jahre    / 3 / bev_x25_bis_29_jahre    * 100,
+    p_x30_bis_49_jahre      = x30_bis_49_jahre    / 3 / bev_x30_bis_49_jahre    * 100,
+    p_x50_bis_64_jahre      = x50_bis_64_jahre    / 3 / bev_x50_bis_64_jahre    * 100,
+    p_x65_jahre_und_alter   = x65_jahre_und_alter / 3 / bev_x65_jahre_und_alter * 100
   )
 
 saldo_kreis <- saldo_kreis %>%
@@ -328,7 +328,7 @@ saldo_kreis <- saldo_kreis %>%
       bev_x30_bis_49_jahre + bev_x50_bis_64_jahre + bev_x65_jahre_und_alter,
     
     # Je 1000 Personen
-    p_wanderungssaldo_gesamt = total / 3 / bev_gesamt * 1000,
+    p_wanderungssaldo_gesamt = total / 3 / bev_gesamt * 100,
     
     # Wanderungssaldo 18–49 Jahre
     wanderungssaldo_18_bis_49 = x18_bis_24_jahre + x25_bis_29_jahre + x30_bis_49_jahre,
@@ -337,7 +337,7 @@ saldo_kreis <- saldo_kreis %>%
     bev_18_bis_49 = bev_x18_bis_24_jahre + bev_x25_bis_29_jahre + bev_x30_bis_49_jahre,
     
     # Je 1000 Personen
-    p_wanderungssaldo_18_bis_49 = wanderungssaldo_18_bis_49 / 3 / bev_18_bis_49 * 1000,
+    p_wanderungssaldo_18_bis_49 = wanderungssaldo_18_bis_49 / 3 / bev_18_bis_49 * 100,
     
     # Wanderungssaldo 18–29 Jahre
     wanderungssaldo_18_bis_29 = x18_bis_24_jahre + x25_bis_29_jahre,
@@ -346,7 +346,7 @@ saldo_kreis <- saldo_kreis %>%
     bev_18_bis_29 = bev_x18_bis_24_jahre + bev_x25_bis_29_jahre,
     
     # Je 1000 Personen
-    p_wanderungssaldo_18_bis_29 = wanderungssaldo_18_bis_29 / 3 / bev_18_bis_29 * 1000,
+    p_wanderungssaldo_18_bis_29 = wanderungssaldo_18_bis_29 / 3 / bev_18_bis_29 * 100,
     
     # Bevölkerungsanteil 18-24
     bev_anteil_1824 = bev_x18_bis_24_jahre / bev_gesamt * 100
@@ -358,7 +358,7 @@ saldo_kreis <- saldo_kreis %>%
 format_5_6 <- function(x) {
   x_round <- round(x)
   ifelse(
-    abs(x_round) >= 10000 & abs(x_round) <= 999999,
+    abs(x_round) >= 10000 & abs(x_round) <= 9999999,
     format(x_round, big.mark = "\u202F", scientific = FALSE),
     format(x_round, scientific = FALSE)
   )
@@ -406,14 +406,14 @@ saldo_kreis <- saldo_kreis %>%
         "Hier leben rund <b>", bev_18_24_str, " deutsche Personen</b> zwischen 18 und 24 Jahren. ",
         "Zwischen 2022 und 2024 sind ebenso viele 18- bis 24-Jährige zugezogen wie fortgezogen. ",
         "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
-        "<b>", p_18_24_str, " je 1.000 Personen</b>."
+        "<b>", p_18_24_str, " je 100 Personen</b>."
       ),
       TRUE ~ paste0(
         "Hier leben rund <b>", bev_18_24_str, " deutsche Personen</b> zwischen 18 und 24 Jahren. ",
         "Zwischen 2022 und 2024 sind <b>", saldo_18_24_str, " mehr 18- bis 24-Jährige</b> ",
         richtung, ". ",
         "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
-        "<b>", p_18_24_str, " je 1.000 Personen</b>."
+        "<b>", p_18_24_str, " je 100 Personen</b>."
       )
     )
   )
@@ -471,14 +471,14 @@ saldo_kreis <- saldo_kreis %>%
         "Hier leben rund <b>", bev_30_49_str, " deutsche Personen</b> zwischen 30 und 49 Jahren. ",
         "Zwischen 2022 und 2024 sind ebenso viele 30- bis 49-Jährige zugezogen wie fortgezogen. ",
         "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
-        "<b>", p_30_49_str, " je 1.000 Personen</b>."
+        "<b>", p_30_49_str, " je 100 Personen</b>."
       ),
       TRUE ~ paste0(
         "Hier leben rund <b>", bev_30_49_str, " deutsche Personen</b> zwischen 30 und 49 Jahren. ",
         "Zwischen 2022 und 2024 sind <b>", saldo_30_49_str, " mehr 30- bis 49-Jährige</b> ",
         richtung, ". ",
         "Das entspricht einem durchschnittlichen jährlichen Wanderungssaldo von ",
-        "<b>", p_30_49_str, " je 1.000 Personen</b>."
+        "<b>", p_30_49_str, " je 100 Personen</b>."
       )
     )
   )
