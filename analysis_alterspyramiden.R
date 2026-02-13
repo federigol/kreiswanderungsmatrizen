@@ -566,4 +566,71 @@ df_18_24 %>%
   write.csv("output/18_bis_24_anteil_an_bev.csv", row.names = FALSE)
 
 
+# 5. df für Beeswarm erstellen auf Basis von 2024er Bevölkerung -----------
+df_kreise <- df_all %>%
+  filter(staatsbuergerschaft == "Deutsch") %>%
+  group_by(ags, region) %>%
+  summarise(
+    bevoelkerung = sum(value, na.rm = TRUE),
+    bevoelkerung_18_24 = sum(value[alter >= 18 & alter <= 24], na.rm = TRUE),
+    bevoelkerung_30_49 = sum(value[alter >= 30 & alter <= 49], na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    anteil_18_24_an_bevoelkerung = bevoelkerung_18_24 / bevoelkerung * 100,
+    anteil_30_49_an_bevoelkerung = bevoelkerung_30_49 / bevoelkerung * 100
+  )
+
+#Durchschnittsalter auf Basis der Gesamtbevölkerung berechnen, nicht auf Basis der deutschen Bevölkerung
+#Ergebnisse stimmen mit Werten aus Genesis überein (https://www.regionalstatistik.de/genesis/online?operation=ergebnistabelleUmfang&levelindex=2&levelid=1770966913842&downloadname=12411-07-01-4#abreadcrumb)
+durchschnittsalter <- df_all %>%
+  group_by(ags, region) %>%
+  summarise(
+    bevoelkerung = sum(value, na.rm = TRUE),
+    durchschnittsalter = sum((alter + 0.5) * value, na.rm = TRUE) / sum(value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+#ACHTUNG: ANDERES SKRIPT NÖTIG Wanderungssalden für deutsche Bevölkerung aus dem df saldo_kreis holen, den ich mit Hilfe des Skripts analysis_kreiswanderungen erstellt habe
+saldi <- saldo_kreis %>%
+  select(zielkreis_ags, zielkreis, p_x18_bis_24_jahre, p_x30_bis_49_jahre)
+
+#Joinen und Spalten in richtige Reihenfolge bringen
+df_final <- df_kreise %>%
+  # 1) Durchschnittsalter + Bev 2024 dazuholen
+  left_join(
+    durchschnittsalter %>%
+      select(
+        ags,
+        bevoelkerung_2024_gesamt = bevoelkerung,
+        durchschnittsalter_2024_gesamt = durchschnittsalter
+      ),
+    by = "ags"
+  ) %>%
+  # 2) Wanderungssalden dazuholen
+  left_join(
+    saldi %>%
+      select(
+        ags = zielkreis_ags,
+        wanderungssaldo_18_24_deutsch = p_x18_bis_24_jahre,
+        wanderungssaldo_30_49_deutsch = p_x30_bis_49_jahre
+      ),
+    by = "ags"
+  ) %>%
+  # 3) Spalten exakt in gewünschte Reihenfolge bringen
+  select(
+    ags,
+    region,
+    bevoelkerung_2024_gesamt,
+    durchschnittsalter_2024_gesamt,
+    bevoelkerung_18_24_deutsch = bevoelkerung_18_24,
+    anteil_18_24_an_bevoelkerung_deutsch = anteil_18_24_an_bevoelkerung,
+    wanderungssaldo_18_24_deutsch,
+    bevoelkerung_30_49_deutsch = bevoelkerung_30_49,
+    anteil_30_49_an_bevoelkerung_deutsch = anteil_30_49_an_bevoelkerung,
+    wanderungssaldo_30_49_deutsch
+  )
+
+df_final %>%
+  write.csv("output/daten_marie.csv", row.names = FALSE)
 

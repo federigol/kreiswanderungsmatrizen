@@ -486,3 +486,4 @@ saldo_kreis <- saldo_kreis %>%
 saldo_kreis %>% 
   select(zielkreis_ags, zielkreis, p_x30_bis_49_jahre, tooltip) %>%
   write.csv("output/30_bis_49_wanderungssaldo.csv", row.names = FALSE)
+
