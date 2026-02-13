@@ -680,6 +680,7 @@ df_final <- df_kreise %>%
     ags,
     region,
     bevoelkerung_2024_gesamt,
+    bevoelkerung_2024_deutsch = bevoelkerung,
     durchschnittsalter_2024_gesamt,
     bevoelkerung_18_24_deutsch = bevoelkerung_18_24,
     anteil_18_24_an_bevoelkerung_deutsch = anteil_18_24_an_bevoelkerung,
