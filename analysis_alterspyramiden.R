@@ -202,7 +202,7 @@ colors <- c(
 theme_mobile <- theme(
   legend.position = "none",
   legend.text = element_text(family = "SZSansDigital", size = 30, color = "#EEE9E0"),
-  plot.title = element_text(hjust = 0.46, vjust = 0, size = 30*130/300, family = "SZSansDigital", face = "bold", color = "#EEE9E0"),
+  plot.title = element_text(hjust = 0.46, vjust = 0, size = 18*130/300, family = "SZSansDigital", face = "bold", color = "#EEE9E0"),
   plot.subtitle = element_text(hjust = 0, face = "plain", size = 20, vjust = 14, family = "SZSansDigital"),
   plot.title.position = "panel",
   legend.key.width = unit(0.5, "cm"),
@@ -262,43 +262,43 @@ sanitize_url <- function(input) {
 }
 
 
-## 3.3 Normale Pyramiden erstellen -----------------------------------------------------
-landkreis_names <- unique(df_all_geschlecht$region)
-for (landkreis in landkreis_names) {
-  df_landkreis <- df_all_geschlecht %>%
-    filter(region == landkreis)
-  
-  p <- df_landkreis %>%
-    mutate(AgeMidpoint = (alter + 0.5)) %>%
-    ggplot(aes(x = AgeMidpoint, y = value, fill = geschlecht)) +
-    geom_bar(data = . %>% filter(geschlecht == "Weiblich"), stat = "identity", position = "dodge", width = 1) +
-    geom_bar(data = . %>% filter(geschlecht == "Männlich"), stat = "identity", position = "dodge", width = 1, aes(y = -value)) +
-    scale_y_continuous(labels = abs, breaks = NULL) +  
-    labs(
-      x = "",
-      y = "",
-      title = landkreis,
-      fill = ""
-    ) +
-    theme_minimal() +
-    theme(panel.grid = element_blank()) +
-    coord_flip() +
-    scale_fill_manual(values = colors) 
-  
-  # Save the plot for desktop and mobile formats
-  landkreis_sanitized <- sanitize_url(landkreis)
-  ggsave(
-    filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_desktop.png"),
-    plot = p + theme_desktop +  theme(axis.text.x = element_blank(), plot.background = element_blank()),
-    device = "png", width = 1440/150, height = 900/150, units = "in", bg = NA, dpi = 300
-  )
-  
-  ggsave(
-    filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_mobile.png"),
-    plot = p + theme_mobile + theme(axis.text.x = element_blank(), plot.background = element_blank()),
-    device = "png", width = 360/150, height = 640/150, units = "in", bg = NA, dpi = 300
-  )
-}
+## 3.3 Normale Pyramiden erstellen (wird nicht gebraucht, deshalb auskommentiert) -----------------------------------------------------
+# landkreis_names <- unique(df_all_geschlecht$region)
+# for (landkreis in landkreis_names) {
+#   df_landkreis <- df_all_geschlecht %>%
+#     filter(region == landkreis)
+#   
+#   p <- df_landkreis %>%
+#     mutate(AgeMidpoint = (alter + 0.5)) %>%
+#     ggplot(aes(x = AgeMidpoint, y = value, fill = geschlecht)) +
+#     geom_bar(data = . %>% filter(geschlecht == "Weiblich"), stat = "identity", position = "dodge", width = 1) +
+#     geom_bar(data = . %>% filter(geschlecht == "Männlich"), stat = "identity", position = "dodge", width = 1, aes(y = -value)) +
+#     scale_y_continuous(labels = abs, breaks = NULL) +  
+#     labs(
+#       x = "",
+#       y = "",
+#       title = landkreis,
+#       fill = ""
+#     ) +
+#     theme_minimal() +
+#     theme(panel.grid = element_blank()) +
+#     coord_flip() +
+#     scale_fill_manual(values = colors) 
+#   
+#   # Save the plot for desktop and mobile formats
+#   landkreis_sanitized <- sanitize_url(landkreis)
+#   ggsave(
+#     filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_desktop.png"),
+#     plot = p + theme_desktop +  theme(axis.text.x = element_blank(), plot.background = element_blank()),
+#     device = "png", width = 1440/150, height = 900/150, units = "in", bg = NA, dpi = 300
+#   )
+#   
+#   ggsave(
+#     filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_mobile.png"),
+#     plot = p + theme_mobile + theme(axis.text.x = element_blank(), plot.background = element_blank()),
+#     device = "png", width = 360/150, height = 640/150, units = "in", bg = NA, dpi = 300
+#   )
+# }
 
 ## 3.4 Pyramide mit Einfärbung 18-24 -----------------------------------------------------
 landkreis_names <- unique(df_all_geschlecht$region)
@@ -509,7 +509,9 @@ for (landkreis in landkreis_names) {
 }
 
 
-# 4. Anteil 18 bis 24 an Gesamtbevölkerung -------------------------------
+# 4. Anteile an Gesamtbevölkerung-------------------------------
+
+## 4.1 18 bis 24 Jahre --------------------------------------------------
 df_18_24 <- df_all %>%
   # nur Deutsche (falls andere Staatsbürgerschaften im df vorhanden sind)
   filter(staatsbuergerschaft == "Deutsch") %>%
@@ -564,6 +566,62 @@ df_18_24 <- df_18_24 %>%
 df_18_24 %>% 
   select(ags, region, anteil_18_24, tooltip) %>%
   write.csv("output/18_bis_24_anteil_an_bev.csv", row.names = FALSE)
+
+## 4.2 30 bis 49 Jahre --------------------------------------------------
+df_30_49 <- df_all %>%
+  # nur Deutsche (falls andere Staatsbürgerschaften im df vorhanden sind)
+  filter(staatsbuergerschaft == "Deutsch") %>%
+  
+  group_by(ags, region) %>%
+  summarise(
+    deutsche_gesamt = sum(value),                             # alle Altersjahre
+    deutsche_30_49 = sum(value[alter >= 30 & alter <= 49], na.rm = TRUE), # nur 30-49
+    .groups = "drop"
+  ) %>%
+  mutate(
+    anteil_30_49 = deutsche_30_49 / deutsche_gesamt  * 100         # Anteil berechnen
+  )
+
+# Hilfsfunktion: 5- bis 7-stellige Zahlen mit schmalem Leerzeichen trennen
+format_5_6 <- function(x) {
+  x_round <- round(x)
+  ifelse(
+    abs(x_round) >= 10000 & abs(x_round) <= 9999999,
+    format(x_round, big.mark = "\u202F", scientific = FALSE),
+    format(x_round, scientific = FALSE)
+  )
+}
+
+df_30_49 <- df_30_49 %>%
+  mutate(
+    # Runden auf Zehner
+    bev_gesamt_round   = round(deutsche_gesamt / 10) * 10,
+    bev_30_49_round   = round(deutsche_30_49 / 10) * 10,
+    
+    # Formatieren mit schmalem Leerzeichen
+    bev_gesamt_str = format_5_6(bev_gesamt_round),
+    bev_30_49_str  = format_5_6(bev_30_49_round),
+    
+    # Prozentwert formatiert (eine Nachkommastelle, Komma)
+    bev_anteil_str = format(
+      round(anteil_30_49, 1),
+      decimal.mark = ",",
+      big.mark = "\u202F",
+      scientific = FALSE
+    ),
+    
+    # Tooltip zusammensetzen
+    tooltip = paste0(
+      "Hier leben rund <b>", bev_gesamt_str, 
+      "</b> deutsche Personen, davon sind etwa <b>", bev_30_49_str, 
+      "</b> zwischen 30 und 49 Jahre alt. Das entspricht einem Anteil von <b>",
+      bev_anteil_str, " Prozent</b>."
+    )
+  )
+
+df_30_49 %>% 
+  select(ags, region, anteil_30_49, tooltip) %>%
+  write.csv("output/30_bis_49_anteil_an_bev.csv", row.names = FALSE)
 
 
 # 5. df für Beeswarm erstellen auf Basis von 2024er Bevölkerung -----------
