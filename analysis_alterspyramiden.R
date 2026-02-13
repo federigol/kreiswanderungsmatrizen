@@ -1,4 +1,6 @@
 #Skript zum Erstellen von Bevölkerungspyramiden für sämtliche Landkreise
+#sowie zum Errechnen des Anteils 18-bis-24-Jährige an der Gesamtbevölkerung
+
 library(needs)
 needs(tidyverse, openxlsx, stringr, readxl, svglite)
 Sys.setlocale("LC_TIME", "de_DE.UTF-8")
@@ -286,13 +288,13 @@ for (landkreis in landkreis_names) {
   # Save the plot for desktop and mobile formats
   landkreis_sanitized <- sanitize_url(landkreis)
   ggsave(
-    filename = paste0("output/pyrs/pyr_", landkreis_sanitized, "_desktop.png"),
+    filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_desktop.png"),
     plot = p + theme_desktop +  theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png", width = 1440/150, height = 900/150, units = "in", bg = NA, dpi = 300
   )
   
   ggsave(
-    filename = paste0("output/pyrs/pyr_", landkreis_sanitized, "_mobile.png"),
+    filename = paste0("output/pyrs_normal/pyr_", landkreis_sanitized, "_mobile.png"),
     plot = p + theme_mobile + theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png", width = 360/150, height = 640/150, units = "in", bg = NA, dpi = 300
   )
@@ -347,7 +349,7 @@ for (landkreis in landkreis_names) {
   
   # Desktop
   ggsave(
-    filename = paste0("output/pyrs_18_24/pyr_", landkreis_sanitized, "_desktop.png"),
+    filename = paste0("output/pyrs_einfaerbung_18_24/pyr_", landkreis_sanitized, "_desktop.png"),
     plot = p + theme_desktop +
       theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png",
@@ -357,7 +359,7 @@ for (landkreis in landkreis_names) {
   
   # Mobile
   ggsave(
-    filename = paste0("output/pyrs_18_24/pyr_", landkreis_sanitized, "_mobile.png"),
+    filename = paste0("output/pyrs_einfaerbung_18_24/pyr_", landkreis_sanitized, "_mobile.png"),
     plot = p + theme_mobile +
       theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png",
@@ -415,7 +417,7 @@ for (landkreis in landkreis_names) {
   
   # Desktop
   ggsave(
-    filename = paste0("output/pyrs_30_49/pyr_", landkreis_sanitized, "_desktop.png"),
+    filename = paste0("output/pyrs_einfaerbung_30_49/pyr_", landkreis_sanitized, "_desktop.png"),
     plot = p + theme_desktop +
       theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png",
@@ -425,7 +427,7 @@ for (landkreis in landkreis_names) {
   
   # Mobile
   ggsave(
-    filename = paste0("output/pyrs_30_49/pyr_", landkreis_sanitized, "_mobile.png"),
+    filename = paste0("output/pyrs_einfaerbung_30_49/pyr_", landkreis_sanitized, "_mobile.png"),
     plot = p + theme_mobile +
       theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png",
@@ -434,7 +436,7 @@ for (landkreis in landkreis_names) {
   )
 }
 
-# Für Widget --------------------------------------------------------------
+## 3.6 Pyramiden für Widget --------------------------------------------------------------
 theme_mobile <- theme(
   legend.position = "none",
   legend.text = element_text(family = "SZSansDigital", size = 0),
@@ -500,14 +502,14 @@ for (landkreis in landkreis_names) {
   landkreis_sanitized <- sanitize_url(landkreis)
   
     ggsave(
-    filename = paste0("output/widget/pyr_", gsub(" ", "_", landkreis_sanitized), "_widget.png"),
+    filename = paste0("output/pyrs_widget/pyr_", gsub(" ", "_", landkreis_sanitized), "_widget.png"),
     plot = p + theme_mobile + theme(axis.text.x = element_blank(), plot.background = element_blank()),
     device = "png", width = 450/150, height = 450/150, units = "in", bg = NA, dpi = 300
   )
 }
 
 
-# 3.5 Anteil 18 bis 24 an Gesamtbevölkerung -------------------------------
+# 4. Anteil 18 bis 24 an Gesamtbevölkerung -------------------------------
 df_18_24 <- df_all %>%
   # nur Deutsche (falls andere Staatsbürgerschaften im df vorhanden sind)
   filter(staatsbuergerschaft == "Deutsch") %>%
